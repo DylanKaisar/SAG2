@@ -1,54 +1,56 @@
 pipeline {
     agent any
+
     stages {
-        stage("Verify tooling") {
+        stage('Checkout') {
             steps {
-                sh '''
-                    docker info
-                    docker version
-                    docker compose version
-                '''
+                checkout scm
             }
         }
-        stage("Clear all running docker containers") {
+        stage('Verify tooling') {
             steps {
-                script {
-                    try {
-                        sh 'docker rm -f $(docker ps -a -q)'
-                    } catch (Exception e) {
-                        echo 'No running container to clear up...'
-                    }
-                }
+                bat 'echo Verifying tooling...'
+                // Add Windows-compatible commands here
             }
         }
-        stage("Start Docker") {
+        stage('Clear all running docker containers') {
             steps {
-                sh 'make up'
-                sh 'docker compose ps'
+                bat 'docker ps -q | ForEach-Object {docker stop $_}'
+                bat 'docker ps -aq | ForEach-Object {docker rm $_}'
             }
         }
-        stage("Run Composer Install") {
+        stage('Start Docker') {
             steps {
-                sh 'docker compose run --rm composer install'
+                bat 'net start docker'
             }
         }
-        stage("Populate .env file") {
+        stage('Run Composer Install') {
             steps {
-                script {
-                    sh 'cp C:/xampp/htdocs/SAG.env ${WORKSPACE}/.env'
-                }
+                bat 'composer install'
             }
         }
-        stage("Run Tests") {
+        stage('Populate .env file') {
             steps {
-                sh 'docker compose run --rm artisan test'
+                bat 'copy .env.example .env'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                bat 'vendor\\bin\\phpunit'
             }
         }
     }
+
     post {
         always {
-            sh 'docker compose down --remove-orphans -v'
-            sh 'docker compose ps'
+            bat 'echo Cleanup steps...'
+            // Add any cleanup steps needed
+        }
+        success {
+            bat 'echo Build succeeded!'
+        }
+        failure {
+            bat 'echo Build failed!'
         }
     }
 }
