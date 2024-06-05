@@ -1,8 +1,10 @@
 pipeline {
     agent any
-
+    tools {
+        git 'Default'
+    }
     stages {
-        stage('Checkout') {
+        stage('Declarative: Checkout SCM') {
             steps {
                 checkout scm
             }
@@ -10,46 +12,49 @@ pipeline {
         stage('Verify tooling') {
             steps {
                 bat 'echo Verifying tooling...'
-                // Add Windows-compatible commands here
             }
         }
         stage('Clear all running docker containers') {
             steps {
-                bat 'docker ps -q | ForEach-Object {docker stop $_}'
-                bat 'docker ps -aq | ForEach-Object {docker rm $_}'
+                script {
+                    powershell """
+                    docker ps -q | ForEach-Object {docker stop \$_}
+                    """
+                }
             }
         }
         stage('Start Docker') {
             steps {
-                bat 'net start docker'
+                script {
+                    // Commands to start Docker
+                }
             }
         }
         stage('Run Composer Install') {
             steps {
-                bat 'composer install'
+                script {
+                    // Commands to run Composer install
+                }
             }
         }
         stage('Populate .env file') {
             steps {
-                bat 'copy .env.example .env'
+                script {
+                    // Commands to populate .env file
+                }
             }
         }
         stage('Run Tests') {
             steps {
-                bat 'vendor\\bin\\phpunit'
+                script {
+                    // Commands to run tests
+                }
             }
         }
     }
-
     post {
         always {
             bat 'echo Cleanup steps...'
-            // Add any cleanup steps needed
-        }
-        success {
-            bat 'echo Build succeeded!'
-        }
-        failure {
             bat 'echo Build failed!'
         }
     }
